@@ -19,6 +19,7 @@ namespace OtterBlink
         public int Interval = 100;
         public int Hold = 80;
         public bool ShowNetwork = true;
+        public bool CombineNetwork = false;
 
         static string Dir
         {
@@ -52,6 +53,7 @@ namespace OtterBlink
                         case "Interval": s.Interval = int.Parse(v); break;
                         case "Hold": s.Hold = int.Parse(v); break;
                         case "ShowNetwork": s.ShowNetwork = v == "true"; break;
+                        case "CombineNetwork": s.CombineNetwork = v == "true"; break;
                     }
                 }
             }
@@ -73,7 +75,8 @@ namespace OtterBlink
                     "OffBrightness=" + OffBrightness,
                     "Interval=" + Interval,
                     "Hold=" + Hold,
-                    "ShowNetwork=" + (ShowNetwork ? "true" : "false")
+                    "ShowNetwork=" + (ShowNetwork ? "true" : "false"),
+                    "CombineNetwork=" + (CombineNetwork ? "true" : "false")
                 });
             }
             catch { }
@@ -170,13 +173,19 @@ namespace OtterBlink
             return "  " + name.PadRight(10) + TrayApp.Fmt(rate).PadLeft(13);
         }
 
-        public void UpdateRates(double[] r, bool net)
+        public void UpdateRates(double[] r, bool net, bool combined)
         {
             var sb = new StringBuilder();
             sb.AppendLine("Disk");
             sb.AppendLine(Row("Read", r[0]));
             sb.AppendLine(Row("Write", r[1]));
-            if (net)
+            if (net && combined)
+            {
+                sb.AppendLine("Network");
+                sb.AppendLine(Row("Download", r[6]));
+                sb.AppendLine(Row("Upload", r[7]));
+            }
+            else if (net)
             {
                 sb.AppendLine("Ethernet");
                 sb.AppendLine(Row("Download", r[2]));
@@ -231,9 +240,13 @@ namespace OtterBlink
             var interval = AddNumber("Poll interval (ms)", 20, 2000, Result.Interval);
             var hold = AddNumber("Blink duration (ms)", 0, 1000, Result.Hold);
 
-            var net = new CheckBox { Text = "Show network icon", Checked = Result.ShowNetwork, AutoSize = true };
+            var net = new CheckBox { Text = "Show network activity", Checked = Result.ShowNetwork, AutoSize = true };
+            var combine = new CheckBox { Text = "Combine Ethernet and Wi-Fi (single tray icon)", Checked = Result.CombineNetwork, AutoSize = true };
             var startup = new CheckBox { Text = "Start with Windows", Checked = Startup.Enabled, AutoSize = true };
+            combine.Enabled = net.Checked;
+            net.CheckedChanged += (s, e) => combine.Enabled = net.Checked;
             AddWide(net);
+            AddWide(combine);
             AddWide(startup);
 
             var ok = new Button { Text = "OK", DialogResult = DialogResult.OK };
@@ -254,6 +267,7 @@ namespace OtterBlink
                 Result.Interval = (int)interval.Value;
                 Result.Hold = (int)hold.Value;
                 Result.ShowNetwork = net.Checked;
+                Result.CombineNetwork = combine.Checked;
                 try { Startup.Set(startup.Checked); } catch { }
             };
         }

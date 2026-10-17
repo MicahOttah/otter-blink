@@ -25,8 +25,9 @@ namespace OtterBlink
 
     class TrayApp : ApplicationContext
     {
-        // LED slots: 0 disk read, 1 disk write, 2 LAN rx, 3 LAN tx, 4 Wi-Fi rx, 5 Wi-Fi tx
-        const int Slots = 6;
+        // LED slots: 0 disk read, 1 disk write, 2 LAN rx, 3 LAN tx,
+        //            4 Wi-Fi rx, 5 Wi-Fi tx, 6 combined rx, 7 combined tx
+        const int Slots = 8;
 
         Settings cfg = Settings.Load();
         readonly NotifyIcon diskIcon = new NotifyIcon();
@@ -46,6 +47,8 @@ namespace OtterBlink
         string diskKey = "", netKey = "";
         RatesForm ratesForm;
         bool settingsOpen;
+
+        bool Combined { get { return cfg.ShowNetwork && cfg.CombineNetwork; } }
 
         public TrayApp()
         {
@@ -79,8 +82,9 @@ namespace OtterBlink
         void ApplySettings()
         {
             poll.Interval = Math.Max(cfg.Interval, 20);
-            netIcon.Visible = cfg.ShowNetwork;
+            netIcon.Visible = cfg.ShowNetwork && !cfg.CombineNetwork;
             Redraw(true);
+            UpdateTooltips();
         }
 
         void Poll()
@@ -92,6 +96,8 @@ namespace OtterBlink
             var r = new double[Slots];
             disk.Read(out r[0], out r[1]);
             if (cfg.ShowNetwork) ReadNet(now, dt, r);
+            r[6] = r[2] + r[4];
+            r[7] = r[3] + r[5];
 
             for (int i = 0; i < Slots; i++)
             {
@@ -105,7 +111,8 @@ namespace OtterBlink
                 for (int i = 0; i < Slots; i++) { Rates[i] = acc[i] / span; acc[i] = 0; }
                 accStart = now;
                 UpdateTooltips();
-                if (ratesForm != null && ratesForm.Visible) ratesForm.UpdateRates(Rates, cfg.ShowNetwork);
+                if (ratesForm != null && ratesForm.Visible)
+                    ratesForm.UpdateRates(Rates, cfg.ShowNetwork, cfg.CombineNetwork);
             }
 
             Fade();
@@ -180,7 +187,21 @@ namespace OtterBlink
 
         void Redraw(bool force)
         {
-            string dk = Key(0, 2);
+            if (Combined)
+            {
+                // One icon: disk on top, network below
+                string ck = Key(0, 1, 6, 7);
+                if (force || ck != diskKey)
+                {
+                    diskKey = ck;
+                    SetIcon(diskIcon, LedIcon.Make(
+                        new[] { cfg.ReadColor, cfg.WriteColor, cfg.RxColor, cfg.TxColor },
+                        new[] { lit[0], lit[1], lit[6], lit[7] }, 2, cfg.OffBrightness));
+                }
+                return;
+            }
+
+            string dk = Key(0, 1);
             if (force || dk != diskKey)
             {
                 diskKey = dk;
@@ -189,7 +210,7 @@ namespace OtterBlink
                     new[] { lit[0], lit[1] }, 2, cfg.OffBrightness));
             }
             if (!cfg.ShowNetwork) return;
-            string nk = Key(2, 4);
+            string nk = Key(2, 3, 4, 5);
             if (force || nk != netKey)
             {
                 netKey = nk;
@@ -199,10 +220,10 @@ namespace OtterBlink
             }
         }
 
-        string Key(int start, int count)
+        string Key(params int[] slots)
         {
-            var c = new char[count];
-            for (int i = 0; i < count; i++) c[i] = lit[start + i] ? '1' : '0';
+            var c = new char[slots.Length];
+            for (int i = 0; i < slots.Length; i++) c[i] = lit[slots[i]] ? '1' : '0';
             return new string(c);
         }
 
@@ -215,7 +236,13 @@ namespace OtterBlink
 
         void UpdateTooltips()
         {
-            diskIcon.Text = Clip("Disk  R " + Fmt(Rates[0]) + "  W " + Fmt(Rates[1]));
+            string diskText = "Disk R " + Fmt(Rates[0]) + " W " + Fmt(Rates[1]);
+            if (Combined)
+            {
+                diskIcon.Text = Clip(diskText + "  Net \u2193" + Fmt(Rates[6]) + " \u2191" + Fmt(Rates[7]));
+                return;
+            }
+            diskIcon.Text = Clip(diskText);
             netIcon.Text = Clip("LAN \u2193" + Fmt(Rates[2]) + " \u2191" + Fmt(Rates[3]) +
                                 "  Wi-Fi \u2193" + Fmt(Rates[4]) + " \u2191" + Fmt(Rates[5]));
         }
@@ -233,7 +260,7 @@ namespace OtterBlink
         void ShowRates()
         {
             if (ratesForm == null) ratesForm = new RatesForm();
-            ratesForm.UpdateRates(Rates, cfg.ShowNetwork);
+            ratesForm.UpdateRates(Rates, cfg.ShowNetwork, cfg.CombineNetwork);
             ratesForm.ShowNear();
         }
 
