@@ -6,7 +6,7 @@
         "Icon": "drive-harddisk",
         "Category": "System Information",
         "License": "GPL-2.0+",
-        "Version": "0.1.2",
+        "Version": "0.1.3",
         "Authors": [ { "Name": "MicahOttah" } ],
         "Website": "https://github.com/MicahOttah/otter-blink"
     },

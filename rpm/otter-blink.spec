@@ -1,7 +1,7 @@
 %global applet_id io.github.micahottah.otterblink
 
 Name:           otter-blink
-Version:        0.1.2
+Version:        0.1.3
 Release:        1%{?dist}
 Summary:        Disk and network activity LEDs for KDE Plasma 6
 License:        GPL-2.0-or-later
@@ -32,6 +32,9 @@ cp -a files/home/plasmoid/. %{buildroot}%{_datadir}/plasma/plasmoids/%{applet_id
 %{_datadir}/plasma/plasmoids/%{applet_id}/
 
 %changelog
+* Sat Oct 17 2026 MicahOttah <quinn@lionspaws.net> - 0.1.3-1
+- Windows: DPI-aware, crisp tray icons at any scaling up to 250%
+
 * Sat Oct 17 2026 MicahOttah <quinn@lionspaws.net> - 0.1.2-1
 - Windows tray version for Windows 7 through 11
 
