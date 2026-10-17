@@ -9,6 +9,7 @@
     <Authors>MicahOttah</Authors>
     <Product>Otter Blink</Product>
     <Description>Disk and network activity LEDs for the Windows tray</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <ItemGroup>

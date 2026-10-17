@@ -9,6 +9,25 @@ using Microsoft.Win32;
 
 namespace OtterBlink
 {
+    // Scales fixed pixel sizes to the display. With the DPI-aware manifest,
+    // Windows reports the real DPI (96 = 100%, 240 = 250%).
+    static class Dpi
+    {
+        public static readonly float Factor = Read();
+
+        static float Read()
+        {
+            try
+            {
+                using (var g = Graphics.FromHwnd(IntPtr.Zero))
+                    return Math.Max(1f, g.DpiX / 96f);
+            }
+            catch { return 1f; }
+        }
+
+        public static int S(int px) { return (int)Math.Round(px * Factor); }
+    }
+
     class Settings
     {
         public Color ReadColor = Color.FromArgb(0xff, 0x2a, 0x2a);
@@ -112,12 +131,15 @@ namespace OtterBlink
         [DllImport("user32.dll")]
         static extern bool DestroyIcon(IntPtr handle);
 
+        // Size comes from the system: 16 px at 100%, 20 at 125%, 24 at 150%,
+        // 32 at 200%, 40 at 250%, and so on.
         public static Icon Make(Color[] colors, bool[] lit, int cols, int offPercent)
         {
             int s = SystemInformation.SmallIconSize.Width;
             int rows = (colors.Length + cols - 1) / cols;
             float cell = s / (float)Math.Max(cols, rows);
-            float d = cell * 0.86f;
+            float stroke = Math.Max(1f, s / 16f);
+            float d = cell * 0.86f - stroke;
             float ox = (s - cell * cols) / 2f;
             float oy = (s - cell * rows) / 2f;
             float f = offPercent / 100f;
@@ -135,7 +157,7 @@ namespace OtterBlink
                         float x = ox + (i % cols) * cell + (cell - d) / 2f;
                         float y = oy + (i / cols) * cell + (cell - d) / 2f;
                         using (var b = new SolidBrush(fill)) g.FillEllipse(b, x, y, d, d);
-                        using (var p = new Pen(ControlPaint.Dark(c, 0.5f))) g.DrawEllipse(p, x, y, d, d);
+                        using (var p = new Pen(ControlPaint.Dark(c, 0.5f), stroke)) g.DrawEllipse(p, x, y, d, d);
                     }
                 }
                 IntPtr h = bmp.GetHicon();
@@ -159,7 +181,7 @@ namespace OtterBlink
             StartPosition = FormStartPosition.Manual;
             text.AutoSize = true;
             text.Font = new Font("Consolas", 10f);
-            text.Padding = new Padding(10);
+            text.Padding = new Padding(Dpi.S(10));
             Controls.Add(text);
             Deactivate += (s, e) => Hide();
             FormClosing += (s, e) =>
@@ -226,7 +248,7 @@ namespace OtterBlink
             StartPosition = FormStartPosition.CenterScreen;
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            Padding = new Padding(10);
+            Padding = new Padding(Dpi.S(10));
 
             table.ColumnCount = 2;
             table.AutoSize = true;
@@ -249,8 +271,8 @@ namespace OtterBlink
             AddWide(combine);
             AddWide(startup);
 
-            var ok = new Button { Text = "OK", DialogResult = DialogResult.OK };
-            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel };
+            var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, AutoSize = true };
+            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
             var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, AutoSize = true, Dock = DockStyle.Fill };
             buttons.Controls.Add(cancel);
             buttons.Controls.Add(ok);
@@ -281,7 +303,7 @@ namespace OtterBlink
         void AddColor(string label, Func<Color> get, Action<Color> set)
         {
             table.Controls.Add(new Label { Text = label, AutoSize = true, Anchor = AnchorStyles.Left });
-            var b = new Button { Width = 60, BackColor = get(), FlatStyle = FlatStyle.Flat };
+            var b = new Button { Width = Dpi.S(60), Height = Dpi.S(23), BackColor = get(), FlatStyle = FlatStyle.Flat };
             b.Click += (s, e) =>
             {
                 using (var d = new ColorDialog { Color = get(), FullOpen = true })
@@ -299,7 +321,7 @@ namespace OtterBlink
         NumericUpDown AddNumber(string label, int min, int max, int value)
         {
             table.Controls.Add(new Label { Text = label, AutoSize = true, Anchor = AnchorStyles.Left });
-            var n = new NumericUpDown { Minimum = min, Maximum = max, Width = 80 };
+            var n = new NumericUpDown { Minimum = min, Maximum = max, Width = Dpi.S(80) };
             n.Value = Math.Max(min, Math.Min(max, value));
             table.Controls.Add(n);
             return n;
