@@ -1,0 +1,67 @@
+name: Bug report
+description: Something broke, looks wrong, or behaves oddly
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        Otter Blink reads device names straight from /proc, so details about your disks and network interfaces matter a lot.
+
+        Please do not paste serial numbers, MAC addresses or other personal identifiers.
+  - type: input
+    id: system
+    attributes:
+      label: Fedora version, kernel and Plasma version
+      description: Output of `cat /etc/fedora-release`, `uname -r` and `plasmashell --version`.
+      placeholder: "Fedora Linux 44, 7.2.9-201.fc44.x86_64, plasmashell 6.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - install.sh from the tarball or git
+        - RPM
+        - Other or not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Otter Blink version
+      description: The release you installed, or the git commit.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead? Mention your panel position and the Layout setting if it looks wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: verify
+    attributes:
+      label: Output of verify.sh
+      description: Run `bash verify.sh` from the project folder (or the extracted tarball) and paste the result. It names any failing check.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: devices
+    attributes:
+      label: Your devices and interfaces
+      description: Output of `awk '{print $3}' /proc/diskstats | tr '\n' ' '` and `ip -br link`.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Custom regex filters you set, what you were copying or downloading, error messages, screenshots.

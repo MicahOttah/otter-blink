@@ -1,0 +1,15 @@
+{
+    "KPlugin": {
+        "Id": "io.github.micahottah.otterblink",
+        "Name": "Otter Blink",
+        "Description": "Disk and network activity LEDs",
+        "Icon": "drive-harddisk",
+        "Category": "System Information",
+        "License": "GPL-2.0+",
+        "Version": "0.1.0",
+        "Authors": [ { "Name": "MicahOttah" } ],
+        "Website": "https://github.com/MicahOttah/otter-blink"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

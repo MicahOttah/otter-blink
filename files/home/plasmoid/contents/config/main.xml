@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+    <entry name="readColor" type="Color"><default>#ff2a2a</default></entry>
+    <entry name="writeColor" type="Color"><default>#2ae02a</default></entry>
+    <entry name="rxColor" type="Color"><default>#2a9dff</default></entry>
+    <entry name="txColor" type="Color"><default>#ffb020</default></entry>
+    <entry name="offBrightness" type="Int"><default>20</default></entry>
+    <entry name="ledSize" type="Int"><default>0</default></entry>
+    <entry name="spacing" type="Int"><default>4</default></entry>
+    <entry name="layoutMode" type="Int"><default>0</default></entry>
+    <entry name="showLabels" type="Bool"><default>false</default></entry>
+    <entry name="interval" type="Int"><default>100</default></entry>
+    <entry name="holdTime" type="Int"><default>80</default></entry>
+  </group>
+  <group name="Disk">
+    <entry name="showDisk" type="Bool"><default>true</default></entry>
+    <entry name="writeMode" type="Int"><default>2</default></entry>
+    <entry name="deviceRegex" type="String"><default>^(sd[a-z]+|hd[a-z]+|vd[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+)$</default></entry>
+  </group>
+  <group name="Network">
+    <entry name="showLan" type="Bool"><default>true</default></entry>
+    <entry name="lanRegex" type="String"><default>^(en|eth)</default></entry>
+    <entry name="showWlan" type="Bool"><default>true</default></entry>
+    <entry name="wlanRegex" type="String"><default>^(wl|wlan)</default></entry>
+    <entry name="netThreshold" type="Int"><default>0</default></entry>
+  </group>
+</kcfg>
