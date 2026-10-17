@@ -26,6 +26,7 @@
     <entry name="lanRegex" type="String"><default>^(en|eth)</default></entry>
     <entry name="showWlan" type="Bool"><default>true</default></entry>
     <entry name="wlanRegex" type="String"><default>^(wl|wlan)</default></entry>
+    <entry name="combineNetwork" type="Bool"><default>false</default></entry>
     <entry name="netThreshold" type="Int"><default>0</default></entry>
   </group>
 </kcfg>

@@ -2,3 +2,6 @@
 *.bak
 *.bak*
 *.tar.gz
+*.zip
+windows/bin/
+windows/obj/

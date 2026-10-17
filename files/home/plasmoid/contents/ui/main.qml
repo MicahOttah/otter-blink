@@ -65,10 +65,13 @@ PlasmoidItem {
     readonly property var lanRe: makeRegex(cfg.lanRegex)
     readonly property var wlanRe: makeRegex(cfg.wlanRegex)
 
+    readonly property bool anyNet: cfg.showLan || cfg.showWlan
+    readonly property bool combined: cfg.combineNetwork && anyNet
+
     property var last: null
     property var avgBase: null
-    property var rates: ({ read: 0, write: 0, cache: 0, lanRx: 0, lanTx: 0, wlanRx: 0, wlanTx: 0 })
-    property var names: ({ disk: "", lan: "", wlan: "" })
+    property var rates: ({ read: 0, write: 0, cache: 0, lanRx: 0, lanTx: 0, wlanRx: 0, wlanTx: 0, netRx: 0, netTx: 0 })
+    property var names: ({ disk: "", lan: "", wlan: "", net: "" })
 
     Pulse { id: diskR;  hold: root.cfg.holdTime }
     Pulse { id: diskW;  hold: root.cfg.holdTime }
@@ -76,6 +79,8 @@ PlasmoidItem {
     Pulse { id: lanTx;  hold: root.cfg.holdTime }
     Pulse { id: wlanRx; hold: root.cfg.holdTime }
     Pulse { id: wlanTx; hold: root.cfg.holdTime }
+    Pulse { id: netRx;  hold: root.cfg.holdTime }
+    Pulse { id: netTx;  hold: root.cfg.holdTime }
 
     preferredRepresentation: compactRepresentation
     compactRepresentation: ledsView
@@ -88,10 +93,14 @@ PlasmoidItem {
             L.push(i18n("Disk read: %1", fmtRate(rates.read)))
             L.push(i18n("Disk write: %1", fmtRate(rates.write)))
         }
-        if (cfg.showLan)
-            L.push(i18n("Ethernet: ↓ %1  ↑ %2", fmtRate(rates.lanRx), fmtRate(rates.lanTx)))
-        if (cfg.showWlan)
-            L.push(i18n("Wi-Fi: ↓ %1  ↑ %2", fmtRate(rates.wlanRx), fmtRate(rates.wlanTx)))
+        if (combined) {
+            L.push(i18n("Network: ↓ %1  ↑ %2", fmtRate(rates.netRx), fmtRate(rates.netTx)))
+        } else {
+            if (cfg.showLan)
+                L.push(i18n("Ethernet: ↓ %1  ↑ %2", fmtRate(rates.lanRx), fmtRate(rates.lanTx)))
+            if (cfg.showWlan)
+                L.push(i18n("Wi-Fi: ↓ %1  ↑ %2", fmtRate(rates.wlanRx), fmtRate(rates.wlanTx)))
+        }
         return L.join("\n")
     }
 
@@ -118,12 +127,14 @@ PlasmoidItem {
             lanRx:  d("lanRx") / dt,
             lanTx:  d("lanTx") / dt,
             wlanRx: d("wlanRx") / dt,
-            wlanTx: d("wlanTx") / dt
+            wlanTx: d("wlanTx") / dt,
+            netRx:  d("netRx") / dt,
+            netTx:  d("netTx") / dt
         }
     }
 
     function parse(text) {
-        const s = { read: 0, write: 0, dirty: 0, lanRx: 0, lanTx: 0, wlanRx: 0, wlanTx: 0, time: Date.now() }
+        const s = { read: 0, write: 0, dirty: 0, lanRx: 0, lanTx: 0, wlanRx: 0, wlanTx: 0, netRx: 0, netTx: 0, time: Date.now() }
         const seen = { disk: [], lan: [], wlan: [] }
         let section = "disk"
 
@@ -157,13 +168,18 @@ PlasmoidItem {
             }
         }
 
+        s.netRx = (cfg.showLan ? s.lanRx : 0) + (cfg.showWlan ? s.wlanRx : 0)
+        s.netTx = (cfg.showLan ? s.lanTx : 0) + (cfg.showWlan ? s.wlanTx : 0)
+
         const none = i18n("No matching devices")
+        const netNames = (cfg.showLan ? seen.lan : []).concat(cfg.showWlan ? seen.wlan : [])
         const n = {
             disk: seen.disk.join(", ") || none,
             lan:  seen.lan.join(", ")  || none,
-            wlan: seen.wlan.join(", ") || none
+            wlan: seen.wlan.join(", ") || none,
+            net:  netNames.join(", ")  || none
         }
-        if (n.disk !== names.disk || n.lan !== names.lan || n.wlan !== names.wlan)
+        if (n.disk !== names.disk || n.lan !== names.lan || n.wlan !== names.wlan || n.net !== names.net)
             names = n
 
         // Instant deltas drive the LEDs
@@ -179,6 +195,8 @@ PlasmoidItem {
             if (r.lanTx > 0 && r.lanTx >= thr) lanTx.fire()
             if (r.wlanRx > 0 && r.wlanRx >= thr) wlanRx.fire()
             if (r.wlanTx > 0 && r.wlanTx >= thr) wlanTx.fire()
+            if (r.netRx > 0 && r.netRx >= thr) netRx.fire()
+            if (r.netTx > 0 && r.netTx >= thr) netTx.fire()
         }
         last = s
 
@@ -243,26 +261,38 @@ PlasmoidItem {
                 value: root.fmtRate(root.rates.cache)
             }
 
-            SectionHeader { visible: root.cfg.showLan; title: i18n("Ethernet"); detail: root.names.lan }
+            SectionHeader { visible: root.combined; title: i18n("Network"); detail: root.names.net }
             RateRow {
-                visible: root.cfg.showLan
+                visible: root.combined
+                name: i18n("Download"); ledColor: root.cfg.rxColor; lit: netRx.lit; off: pop.off
+                value: root.fmtRate(root.rates.netRx)
+            }
+            RateRow {
+                visible: root.combined
+                name: i18n("Upload"); ledColor: root.cfg.txColor; lit: netTx.lit; off: pop.off
+                value: root.fmtRate(root.rates.netTx)
+            }
+
+            SectionHeader { visible: root.cfg.showLan && !root.combined; title: i18n("Ethernet"); detail: root.names.lan }
+            RateRow {
+                visible: root.cfg.showLan && !root.combined
                 name: i18n("Download"); ledColor: root.cfg.rxColor; lit: lanRx.lit; off: pop.off
                 value: root.fmtRate(root.rates.lanRx)
             }
             RateRow {
-                visible: root.cfg.showLan
+                visible: root.cfg.showLan && !root.combined
                 name: i18n("Upload"); ledColor: root.cfg.txColor; lit: lanTx.lit; off: pop.off
                 value: root.fmtRate(root.rates.lanTx)
             }
 
-            SectionHeader { visible: root.cfg.showWlan; title: i18n("Wi-Fi"); detail: root.names.wlan }
+            SectionHeader { visible: root.cfg.showWlan && !root.combined; title: i18n("Wi-Fi"); detail: root.names.wlan }
             RateRow {
-                visible: root.cfg.showWlan
+                visible: root.cfg.showWlan && !root.combined
                 name: i18n("Download"); ledColor: root.cfg.rxColor; lit: wlanRx.lit; off: pop.off
                 value: root.fmtRate(root.rates.wlanRx)
             }
             RateRow {
-                visible: root.cfg.showWlan
+                visible: root.cfg.showWlan && !root.combined
                 name: i18n("Upload"); ledColor: root.cfg.txColor; lit: wlanTx.lit; off: pop.off
                 value: root.fmtRate(root.rates.wlanTx)
             }
@@ -280,8 +310,8 @@ PlasmoidItem {
             readonly property int mode: root.cfg.layoutMode
             readonly property int sp: root.cfg.spacing
             readonly property int groupSp: sp * 2 + 2
-            readonly property int groups: Math.max(
-                (root.cfg.showDisk ? 1 : 0) + (root.cfg.showLan ? 1 : 0) + (root.cfg.showWlan ? 1 : 0), 1)
+            readonly property int netGroups: root.combined ? 1 : ((root.cfg.showLan ? 1 : 0) + (root.cfg.showWlan ? 1 : 0))
+            readonly property int groups: Math.max((root.cfg.showDisk ? 1 : 0) + netGroups, 1)
 
             // How many LEDs (and how much spacing) sit across the panel's thickness
             readonly property var cross: {
@@ -333,14 +363,21 @@ PlasmoidItem {
                     Led { ledColor: root.cfg.writeColor; lit: diskW.lit; offFactor: view.off; size: view.ledSize; label: "W"; showLabel: view.labels }
                 }
                 Grid {
-                    visible: root.cfg.showLan
+                    visible: root.combined
+                    columns: view.pairCols
+                    spacing: view.sp
+                    Led { ledColor: root.cfg.rxColor; lit: netRx.lit; offFactor: view.off; size: view.ledSize; label: "N↓"; showLabel: view.labels }
+                    Led { ledColor: root.cfg.txColor; lit: netTx.lit; offFactor: view.off; size: view.ledSize; label: "N↑"; showLabel: view.labels }
+                }
+                Grid {
+                    visible: root.cfg.showLan && !root.combined
                     columns: view.pairCols
                     spacing: view.sp
                     Led { ledColor: root.cfg.rxColor; lit: lanRx.lit; offFactor: view.off; size: view.ledSize; label: "E↓"; showLabel: view.labels }
                     Led { ledColor: root.cfg.txColor; lit: lanTx.lit; offFactor: view.off; size: view.ledSize; label: "E↑"; showLabel: view.labels }
                 }
                 Grid {
-                    visible: root.cfg.showWlan
+                    visible: root.cfg.showWlan && !root.combined
                     columns: view.pairCols
                     spacing: view.sp
                     Led { ledColor: root.cfg.rxColor; lit: wlanRx.lit; offFactor: view.off; size: view.ledSize; label: "Wi↓"; showLabel: view.labels }

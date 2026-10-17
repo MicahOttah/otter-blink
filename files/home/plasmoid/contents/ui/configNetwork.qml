@@ -9,12 +9,13 @@ KCM.SimpleKCM {
     property alias cfg_lanRegex: lanRegex.text
     property alias cfg_showWlan: showWlan.checked
     property alias cfg_wlanRegex: wlanRegex.text
+    property alias cfg_combineNetwork: combineNetwork.checked
     property alias cfg_netThreshold: netThreshold.value
 
     Kirigami.FormLayout {
         QQC2.CheckBox {
             id: showLan
-            Kirigami.FormData.label: i18n("Ethernet LEDs:")
+            Kirigami.FormData.label: i18n("Ethernet:")
             text: i18n("Show")
         }
         QQC2.TextField {
@@ -28,7 +29,7 @@ KCM.SimpleKCM {
 
         QQC2.CheckBox {
             id: showWlan
-            Kirigami.FormData.label: i18n("Wi-Fi LEDs:")
+            Kirigami.FormData.label: i18n("Wi-Fi:")
             text: i18n("Show")
         }
         QQC2.TextField {
@@ -40,6 +41,12 @@ KCM.SimpleKCM {
 
         Item { Kirigami.FormData.isSection: true }
 
+        QQC2.CheckBox {
+            id: combineNetwork
+            enabled: showLan.checked || showWlan.checked
+            Kirigami.FormData.label: i18n("Space saving:")
+            text: i18n("Combine Ethernet and Wi-Fi into one pair")
+        }
         QQC2.SpinBox {
             id: netThreshold
             Kirigami.FormData.label: i18n("Ignore traffic below (KiB/s):")
