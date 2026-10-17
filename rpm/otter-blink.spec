@@ -32,3 +32,6 @@ cp -a files/home/plasmoid/. %{buildroot}%{_datadir}/plasma/plasmoids/%{applet_id
 %{_datadir}/plasma/plasmoids/%{applet_id}/
 
 %changelog
+* Fri Oct 16 2026 MicahOttah <quinn@lionspaws.net> - 0.1.0-1
+- Initial release
+
