@@ -6,6 +6,12 @@ A KDE Plasma 6 panel widget that shows disk and network activity as little blink
 
 A companion to [Otter Power](https://github.com/MicahOttah/otter-power).
 
+## Why another one?
+
+I wanted a disk activity light. Just a light. Every applet I tried, including the one actually labeled "Indicator", turned out to be a graph. Graphs are great for spotting trends, but sometimes you just want to glance at the panel and see whether the drive is busy right now, the way you used to with the little LED on the front of the case.
+
+So this is that: two dots that blink when something happens, plus a couple more for the network if you want them. No graphs. Not even a small one.
+
 ## Quick start
 
 ```
@@ -30,8 +36,10 @@ Provided as is, with no warranty of any kind. See `LICENSE` for the formal terms
 ## Tested on
 
 - Dell Precision 7670, Fedora 44, KDE Plasma 6 on Wayland, kernel 7.2.x
+- Lenovo ThinkPad T530
+- Dell OptiPlex 7xxx Micro
 
-Nothing here is specific to that machine. Any Plasma 6 system with the usual `/proc` files should work.
+No special hardware, drivers or software needed. It reads the same standard Linux `/proc` files every kernel provides, so any machine running Plasma 6 should work.
 
 ## What it does
 
