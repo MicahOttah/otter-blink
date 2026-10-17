@@ -14,6 +14,10 @@ case "$VERSION" in
   *) echo "Version must look like 0.1.1"; exit 1 ;;
 esac
 
+for tool in rpmbuild dotnet zip gh; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "Missing $tool. Install it first."; exit 1; }
+done
+
 EMAIL=$(git config user.email || true)
 [ -n "$EMAIL" ] || { echo "Set git user.email first."; exit 1; }
 [ -z "$(git status --porcelain)" ] || { echo "Uncommitted changes. Commit them first."; exit 1; }
@@ -43,6 +47,8 @@ trap undo EXIT
 echo "== bump version to $VERSION"
 sed -i "s/\"Version\": \"[^\"]*\"/\"Version\": \"$VERSION\"/" files/home/plasmoid/metadata.json
 grep -q "\"Version\": \"$VERSION\"" files/home/plasmoid/metadata.json
+sed -i "s|<Version>[^<]*</Version>|<Version>$VERSION</Version>|" windows/OtterBlink.csproj
+grep -q "<Version>$VERSION</Version>" windows/OtterBlink.csproj
 sed -i "s/^Version:.*/Version:        $VERSION/" rpm/otter-blink.spec
 sed -i "s/^Release:.*/Release:        1%{?dist}/" rpm/otter-blink.spec
 grep -q "^Version:        $VERSION\$" rpm/otter-blink.spec
@@ -58,7 +64,7 @@ git add -A
 git commit -q -m "Release v$VERSION: $MSG"
 git tag -a "v$VERSION" -m "Otter Blink $VERSION"
 
-echo "== build"
+echo "== build Linux packages"
 mkdir -p "$HOME/rpmbuild/SOURCES"
 git archive --format=tar.gz --prefix="otter-blink-$VERSION/" -o "$HOME/rpmbuild/SOURCES/otter-blink-$VERSION.tar.gz" "v$VERSION"
 if ! rpmbuild -ba rpm/otter-blink.spec > /tmp/otter-blink-rpmbuild.log 2>&1; then
@@ -70,6 +76,16 @@ OUT="$HOME/release-files/otter-blink/$VERSION"
 rm -rf "$OUT"
 mkdir -p "$OUT"
 cp "$HOME/rpmbuild/RPMS/noarch/otter-blink-$VERSION-1."*.noarch.rpm "$HOME/rpmbuild/SRPMS/otter-blink-$VERSION-1."*.src.rpm "$HOME/rpmbuild/SOURCES/otter-blink-$VERSION.tar.gz" "$OUT/"
+
+echo "== build Windows zip"
+rm -rf windows/bin windows/obj
+if ! (cd windows && dotnet build -c Release -v normal) > /tmp/otter-blink-dotnet.log 2>&1; then
+  tail -30 /tmp/otter-blink-dotnet.log
+  exit 1
+fi
+WINZIP="otter-blink-windows-$VERSION.zip"
+(cd windows/bin/Release && zip -v "$OUT/$WINZIP" OtterBlink.exe OtterBlink.exe.config)
+
 (cd "$OUT" && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
 RPMFILE=$(basename "$OUT"/*.noarch.rpm)
 
@@ -77,16 +93,18 @@ NOTES=$(mktemp)
 cat > "$NOTES" << NOTES_EOF
 $MSG
 
-Install from the tarball:
+Linux, install from the tarball:
 
     tar xzf otter-blink-$VERSION.tar.gz
     cd otter-blink-$VERSION
     bash install.sh
     bash verify.sh
 
-Or install the RPM (remove any copy installed with install.sh first):
+Linux, or install the RPM (remove any copy installed with install.sh first):
 
     sudo dnf install ./$RPMFILE
+
+Windows 7 through 11: download $WINZIP, extract both files into one folder, and run OtterBlink.exe. Nothing else to install. The exe is unsigned, so SmartScreen will ask for confirmation.
 
 Check downloads with: sha256sum -c SHA256SUMS
 NOTES_EOF
